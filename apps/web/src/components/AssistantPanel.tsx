@@ -5,6 +5,7 @@ import type { Approval } from "@crystal-ball/shared";
 import { ChatView } from "@/components/ChatView";
 import { GreetingBar } from "@/components/GreetingBar";
 import { ModeTabs } from "@/components/ModeTabs";
+import { SummaryView } from "@/components/SummaryView";
 import { ASSISTANT_MODES, type AssistantMode } from "@/lib/assistant-modes";
 import {
   selectSessionId,
@@ -27,6 +28,10 @@ function ModeStage({ mode }: { mode: AssistantMode }) {
     return <GreetingBar />;
   }
 
+  if (mode === "summary") {
+    return <SummaryView />;
+  }
+
   if (mode === "talk" || mode === "teach") {
     return <ChatView mode={mode} />;
   }
@@ -38,8 +43,7 @@ function ModeStage({ mode }: { mode: AssistantMode }) {
       <h2>{meta?.label ?? mode}</h2>
       <p>{meta?.description}</p>
       <p className="mode-placeholder-note">
-        Help and Summary stay in local component state until those views are
-        wired.
+        Help stays in local component state until that view is wired.
       </p>
     </div>
   );
