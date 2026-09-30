@@ -41,7 +41,7 @@ export function createAssistantRouter(
     deps.provider,
     new KeywordRetriever(loadPolicyChunks()),
   );
-  const conversationStore = new ConversationStore();
+  const conversationStore = deps.conversationStore ?? new ConversationStore();
   const conversationService = new ConversationService(
     deps.provider,
     conversationStore,
