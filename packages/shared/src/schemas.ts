@@ -56,10 +56,13 @@ export const HelpResponseSchema = z.object({
 
 export type HelpResponse = z.infer<typeof HelpResponseSchema>;
 
+export const LanguageSchema = z.enum(["en", "es"]);
+
+export type Language = z.infer<typeof LanguageSchema>;
+
 export const SummaryRequestSchema = z
   .object({
-    /** Optional client correlation id; unused by ranking itself. */
-    requestId: z.string().trim().min(1).max(64).optional(),
+    language: LanguageSchema.optional(),
   })
   .strict();
 
@@ -67,7 +70,9 @@ export type SummaryRequest = z.infer<typeof SummaryRequestSchema>;
 
 export const ChatRequestSchema = z
   .object({
+    sessionId: z.string().uuid(),
     message: AnswerTextSchema,
+    language: LanguageSchema.optional(),
   })
   .strict();
 
@@ -75,7 +80,9 @@ export type ChatRequest = z.infer<typeof ChatRequestSchema>;
 
 export const TeachRequestSchema = z
   .object({
-    topic: MediumTextSchema,
+    sessionId: z.string().uuid(),
+    message: AnswerTextSchema,
+    language: LanguageSchema.optional(),
   })
   .strict();
 
@@ -84,10 +91,19 @@ export type TeachRequest = z.infer<typeof TeachRequestSchema>;
 export const HelpRequestSchema = z
   .object({
     question: LongTextSchema,
+    language: LanguageSchema.optional(),
   })
   .strict();
 
 export type HelpRequest = z.infer<typeof HelpRequestSchema>;
+
+export const GreetingQuerySchema = z
+  .object({
+    language: LanguageSchema.optional(),
+  })
+  .strict();
+
+export type GreetingQuery = z.infer<typeof GreetingQuerySchema>;
 
 export const ErrorResponseSchema = z.object({
   code: z.string().trim().min(1).max(64),

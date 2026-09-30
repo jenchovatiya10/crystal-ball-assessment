@@ -1,19 +1,14 @@
 import cors from "cors";
 import express, { type Express, type Request, type Response } from "express";
 import helmet from "helmet";
-import type { Approval } from "@crystal-ball/shared";
-import type { AIProvider } from "./ai/AIProvider.js";
-import type { Clock } from "./services/greeting.service.js";
+import type { AppDeps } from "./deps.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { createAiRateLimiter } from "./middleware/rateLimit.js";
 import { requestIdMiddleware } from "./middleware/requestId.js";
 import { requireSessionId } from "./middleware/sessionId.js";
+import { createAssistantRouter } from "./routes/assistant.routes.js";
 
-export type AppDeps = {
-  provider: AIProvider;
-  clock: Clock;
-  approvals: readonly Approval[];
-};
+export type { AppDeps } from "./deps.js";
 
 export type AppConfig = {
   webOrigin: string | string[];
@@ -24,12 +19,8 @@ export type AppConfig = {
 
 /**
  * Express application factory with injectable deps for Supertest / FakeAIProvider.
- * Assistant feature routes are intentionally not mounted yet.
  */
 export function createApp(deps: AppDeps, config: AppConfig): Express {
-  // Deps are captured for upcoming assistant routes / test injection.
-  void deps;
-
   const app = express();
 
   app.disable("x-powered-by");
@@ -47,12 +38,19 @@ export function createApp(deps: AppDeps, config: AppConfig): Express {
     res.status(200).json({ ok: true });
   });
 
-  // Internal probe for session + rate-limit middleware (not a product feature).
+  app.use(
+    "/api",
+    createAssistantRouter(deps, {
+      rateLimitWindowMs: config.rateLimitWindowMs,
+      rateLimitMax: config.rateLimitMax,
+    }),
+  );
+
+  // Internal probe retained for middleware unit coverage.
   const aiRateLimit = createAiRateLimiter({
     windowMs: config.rateLimitWindowMs ?? 60_000,
     max: config.rateLimitMax ?? 30,
   });
-
   app.get(
     "/api/__middleware_probe__",
     requireSessionId,

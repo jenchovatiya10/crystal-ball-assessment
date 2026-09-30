@@ -37,6 +37,7 @@ export type SummaryResult = {
 
 export type SummaryServiceOptions = {
   now?: Date;
+  getNow?: () => Date;
   approvals?: readonly Approval[];
 };
 
@@ -78,19 +79,21 @@ export function validateSummarySemantics(
 }
 
 export class SummaryService {
-  private readonly now: Date;
+  private readonly getNow: () => Date;
   private readonly approvals: readonly Approval[];
 
   constructor(
     private readonly ai: AIProvider,
     options: SummaryServiceOptions = {},
   ) {
-    this.now = options.now ?? new Date();
+    this.getNow =
+      options.getNow ??
+      (() => options.now ?? new Date());
     this.approvals = options.approvals ?? APPROVALS;
   }
 
   async presentSummary(signal?: AbortSignal): Promise<SummaryResult> {
-    const ranked = rankApprovals(this.approvals, this.now);
+    const ranked = rankApprovals(this.approvals, this.getNow());
     const approvalIds = new Set(this.approvals.map((a) => a.id));
     const titlesById = new Map(this.approvals.map((a) => [a.id, a.title]));
     const approvalsById = new Map(
