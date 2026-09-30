@@ -1,4 +1,5 @@
-import type { Approval, SummaryResponse } from "@crystal-ball/shared";
+import type { Approval, HelpResponse, SummaryResponse } from "@crystal-ball/shared";
+import type { ScoredChunk } from "../rag/Retriever.js";
 import type { RankedApproval } from "./ranking.service.js";
 
 /**
@@ -40,5 +41,39 @@ export function buildSummaryFallback(
     overview: overview.slice(0, 2000),
     priorityItems,
     recommendedNextAction,
+  };
+}
+
+/** Deterministic no-retrieval Help answer — never calls the LLM conceptually. */
+export function buildHelpNoSourcesFallback(): HelpResponse {
+  return {
+    answer:
+      "I could not find relevant policy guidance for that question. Please rephrase using approval review terms such as escalation, SLA, rejection notes, or item type rules.",
+    sources: [],
+    grounded: false,
+  };
+}
+
+/**
+ * Grounded Help fallback from retrieved chunks only — does not invent policy.
+ */
+export function buildHelpFallback(chunks: readonly ScoredChunk[]): HelpResponse {
+  if (chunks.length === 0) {
+    return buildHelpNoSourcesFallback();
+  }
+
+  const excerpts = chunks.map(
+    (chunk) => `(${chunk.id}) ${chunk.title}: ${chunk.text}`,
+  );
+  const answer =
+    `Based on the retrieved policy excerpts: ${excerpts.join(" ")}`.slice(
+      0,
+      4000,
+    );
+
+  return {
+    answer,
+    sources: chunks.map((chunk) => chunk.id),
+    grounded: true,
   };
 }
