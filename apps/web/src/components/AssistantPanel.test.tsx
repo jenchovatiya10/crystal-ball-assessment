@@ -17,6 +17,18 @@ vi.mock("@/lib/apiClient", async (importOriginal) => {
       },
       meta: { source: "ai", promptVersion: "summary.v1" },
     }),
+    getGreeting: vi.fn().mockResolvedValue({
+      greeting:
+        "Good morning. You have 1 approval waiting. The Site Patrol Onboarding & Checklists Folder needs your attention first.",
+      meta: {
+        dayPart: "morning",
+        totalCount: 1,
+        urgency: { critical: 0, high: 1, medium: 0, low: 0 },
+        highestPriorityApprovalId: "apr_folder_site_patrol_onboarding",
+        highestPriorityTitle: "Site Patrol Onboarding & Checklists Folder",
+        language: "en",
+      },
+    }),
   };
 });
 
