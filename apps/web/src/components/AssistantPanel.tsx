@@ -1,13 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect } from "react";
 import type { Approval } from "@crystal-ball/shared";
 import { GreetingBar } from "@/components/GreetingBar";
 import { ModeTabs } from "@/components/ModeTabs";
+import { ASSISTANT_MODES, type AssistantMode } from "@/lib/assistant-modes";
 import {
-  ASSISTANT_MODES,
-  type AssistantMode,
-} from "@/lib/assistant-modes";
+  selectSessionId,
+  useConversationStore,
+} from "@/store/conversationStore";
+import {
+  selectActiveMode,
+  selectPanelOpen,
+  selectSetActiveMode,
+  selectTogglePanel,
+  useUiStore,
+} from "@/store/uiStore";
 
 type AssistantPanelProps = {
   approvals: Approval[];
@@ -25,18 +33,28 @@ function ModePlaceholder({ mode }: { mode: AssistantMode }) {
       <h2>{meta?.label ?? mode}</h2>
       <p>{meta?.description}</p>
       <p className="mode-placeholder-note">
-        Interaction and streaming for this mode will be wired in a later step.
+        Composer text, help questions, and transient summary results stay in
+        local component state. Streaming will be wired later.
       </p>
     </div>
   );
 }
 
 /**
- * Client shell for mode switching. Keeps the client boundary small —
- * no ranking, RAG, prompts, or streaming logic.
+ * Client shell for mode switching. Uses narrow Zustand selectors only.
+ * Composer / help / summary draft text remain local (not in the store).
  */
 export function AssistantPanel({ approvals }: AssistantPanelProps) {
-  const [activeMode, setActiveMode] = useState<AssistantMode>("summary");
+  const activeMode = useUiStore(selectActiveMode);
+  const setActiveMode = useUiStore(selectSetActiveMode);
+  const panelOpen = useUiStore(selectPanelOpen);
+  const togglePanel = useUiStore(selectTogglePanel);
+  const sessionId = useConversationStore(selectSessionId);
+  const ensureSessionId = useConversationStore((s) => s.ensureSessionId);
+
+  useEffect(() => {
+    ensureSessionId();
+  }, [ensureSessionId]);
 
   return (
     <section className="assistant-panel" aria-label="Crystal Ball assistant">
@@ -44,42 +62,68 @@ export function AssistantPanel({ approvals }: AssistantPanelProps) {
         <div>
           <p className="assistant-kicker">Command centre</p>
           <h1 className="assistant-title">Crystal Ball</h1>
+          {sessionId ? (
+            <p className="session-id" title={sessionId}>
+              Session {sessionId.slice(0, 8)}
+            </p>
+          ) : null}
         </div>
-        <div className="approval-count" aria-live="polite">
-          <span className="approval-count-value">{approvals.length}</span>
-          <span className="approval-count-label">approvals loaded</span>
+        <div className="assistant-header-actions">
+          <button
+            type="button"
+            className="panel-toggle"
+            aria-pressed={panelOpen}
+            onClick={togglePanel}
+          >
+            {panelOpen ? "Hide panel" : "Show panel"}
+          </button>
+          <div className="approval-count" aria-live="polite">
+            <span className="approval-count-value">{approvals.length}</span>
+            <span className="approval-count-label">approvals loaded</span>
+          </div>
         </div>
       </header>
 
-      <ModeTabs activeMode={activeMode} onModeChange={setActiveMode} />
+      {panelOpen ? (
+        <>
+          <ModeTabs activeMode={activeMode} onModeChange={setActiveMode} />
 
-      <div
-        role="tabpanel"
-        id={`panel-${activeMode}`}
-        aria-labelledby={`tab-${activeMode}`}
-        className="assistant-stage"
-      >
-        <ModePlaceholder mode={activeMode} />
+          <div
+            role="tabpanel"
+            id={`panel-${activeMode}`}
+            aria-labelledby={`tab-${activeMode}`}
+            className="assistant-stage"
+          >
+            <ModePlaceholder mode={activeMode} />
 
-        <aside className="approval-rail" aria-label="Seeded approvals">
-          <h3>Queue snapshot</h3>
-          {approvals.length === 0 ? (
-            <p className="approval-empty">
-              No approvals available. Start the API or check NEXT_PUBLIC_API_URL.
-            </p>
-          ) : (
-            <ul className="approval-list">
-              {approvals.map((approval) => (
-                <li key={approval.id} className="approval-item">
-                  <span className="approval-type">{approval.type}</span>
-                  <span className="approval-title">{approval.title}</span>
-                  <span className="approval-due">Due {approval.dueAt.slice(0, 10)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </aside>
-      </div>
+            <aside className="approval-rail" aria-label="Seeded approvals">
+              <h3>Queue snapshot</h3>
+              {approvals.length === 0 ? (
+                <p className="approval-empty">
+                  No approvals available. Start the API or check
+                  NEXT_PUBLIC_API_URL.
+                </p>
+              ) : (
+                <ul className="approval-list">
+                  {approvals.map((approval) => (
+                    <li key={approval.id} className="approval-item">
+                      <span className="approval-type">{approval.type}</span>
+                      <span className="approval-title">{approval.title}</span>
+                      <span className="approval-due">
+                        Due {approval.dueAt.slice(0, 10)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </aside>
+          </div>
+        </>
+      ) : (
+        <p className="panel-collapsed-note">
+          Assistant panel hidden. Local composer drafts are unaffected.
+        </p>
+      )}
     </section>
   );
 }
