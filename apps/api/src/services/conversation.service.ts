@@ -61,20 +61,6 @@ function abortFromSignal(signal: AbortSignal): Error {
   return err;
 }
 
-function isTransient(error: unknown): boolean {
-  if (error instanceof AITimeoutError) return false;
-  if (isAbortError(error)) return false;
-  if (error instanceof AIUnavailableError) return error.retryable;
-  if (error instanceof Error) {
-    const msg = error.message.toLowerCase();
-    if (/network|econnreset|etimedout|econnrefused|fetch failed|socket/.test(msg)) {
-      return true;
-    }
-    if (/^5\d\d\b/.test(error.message)) return true;
-  }
-  return false;
-}
-
 function toErrorPayload(error: unknown): {
   code: string;
   message: string;
@@ -124,8 +110,10 @@ export class ConversationService {
   }
 
   /**
-   * HTTP-oriented stream with pre-first-token retry + fallback, mid-stream error,
-   * and history save only after successful completion (including fallback done).
+   * HTTP-oriented stream with mid-stream error handling and history save only
+   * after successful completion (including fallback done).
+   * Transient pre-token retry lives in ResilientAIProvider — do not retry here
+   * (avoids stacked retries / duplicate provider work).
    */
   async *runAssistantStream(
     params: StreamTurnParams,
@@ -153,51 +141,42 @@ export class ConversationService {
     let emitted = false;
     const chunks: string[] = [];
 
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      try {
-        for await (const chunk of this.ai.stream({
-          prompt,
-          messages,
-          signal: params.signal,
-        })) {
-          if (params.signal?.aborted) {
-            throw abortFromSignal(params.signal);
-          }
-          emitted = true;
-          chunks.push(chunk);
-          yield { type: "token", t: chunk };
+    try {
+      for await (const chunk of this.ai.stream({
+        prompt,
+        messages,
+        signal: params.signal,
+      })) {
+        if (params.signal?.aborted) {
+          throw abortFromSignal(params.signal);
         }
+        emitted = true;
+        chunks.push(chunk);
+        yield { type: "token", t: chunk };
+      }
 
-        this.persistCompleted(params, chunks.join(""));
-        yield { type: "done" };
-        return;
-      } catch (error) {
-        if (isAbortError(error)) {
-          throw error;
-        }
+      this.persistCompleted(params, chunks.join(""));
+      yield { type: "done" };
+    } catch (error) {
+      if (isAbortError(error)) {
+        throw error;
+      }
 
-        if (emitted) {
-          const payload = toErrorPayload(error);
-          yield {
-            type: "error",
-            code: payload.code,
-            message: payload.message,
-            fallback: true,
-          };
-          return;
-        }
-
-        const canRetry = attempt === 0 && isTransient(error);
-        if (canRetry) {
-          continue;
-        }
-
-        // Pre-first-token failure after retry budget → fallback tokens + done.
-        yield { type: "token", t: STREAM_FALLBACK_TEXT };
-        this.persistCompleted(params, STREAM_FALLBACK_TEXT);
-        yield { type: "done", fallback: true };
+      if (emitted) {
+        const payload = toErrorPayload(error);
+        yield {
+          type: "error",
+          code: payload.code,
+          message: payload.message,
+          fallback: true,
+        };
         return;
       }
+
+      // Pre-first-token failure after provider retry budget → fallback.
+      yield { type: "token", t: STREAM_FALLBACK_TEXT };
+      this.persistCompleted(params, STREAM_FALLBACK_TEXT);
+      yield { type: "done", fallback: true };
     }
   }
 

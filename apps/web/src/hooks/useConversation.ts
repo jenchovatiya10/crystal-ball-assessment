@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, startTransition } from "react";
 import {
   ApiClientError,
   streamChat,
@@ -200,9 +200,13 @@ export function useConversation(
 
           if (event.event === "token") {
             assistantContent += tokenText(event.data);
-            useConversationStore
-              .getState()
-              .patchLastAssistant(mode, { content: assistantContent });
+            const content = assistantContent;
+            // Keep composer/input responsive while tokens arrive.
+            startTransition(() => {
+              useConversationStore
+                .getState()
+                .patchLastAssistant(mode, { content });
+            });
             continue;
           }
 

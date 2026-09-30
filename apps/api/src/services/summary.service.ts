@@ -39,7 +39,12 @@ export type SummaryServiceOptions = {
   now?: Date;
   getNow?: () => Date;
   approvals?: readonly Approval[];
+  /** SHOULD: short in-memory cache (ms). Default 60s; set 0 to disable. */
+  cacheTtlMs?: number;
 };
+
+/** Default Summary cache TTL — SHOULD, not MUST. */
+export const SUMMARY_CACHE_TTL_MS = 60_000;
 
 function isAbortError(error: unknown): boolean {
   return error instanceof Error && error.name === "AbortError";
@@ -52,6 +57,10 @@ function fallbackReason(error: unknown): SummaryFallbackReason {
   if (error instanceof ZodError) return "invalid_output";
   if (isAbortError(error)) return "timeout";
   return "unavailable";
+}
+
+function rankingCacheKey(ranked: readonly RankedApproval[]): string {
+  return ranked.map((item) => `${item.approvalId}:${item.priority}`).join("|");
 }
 
 /**
@@ -81,6 +90,10 @@ export function validateSummarySemantics(
 export class SummaryService {
   private readonly getNow: () => Date;
   private readonly approvals: readonly Approval[];
+  private readonly cacheTtlMs: number;
+  private cache:
+    | { key: string; expiresAt: number; result: SummaryResult }
+    | null = null;
 
   constructor(
     private readonly ai: AIProvider,
@@ -90,10 +103,40 @@ export class SummaryService {
       options.getNow ??
       (() => options.now ?? new Date());
     this.approvals = options.approvals ?? APPROVALS;
+    this.cacheTtlMs = options.cacheTtlMs ?? SUMMARY_CACHE_TTL_MS;
   }
 
   async presentSummary(signal?: AbortSignal): Promise<SummaryResult> {
     const ranked = rankApprovals(this.approvals, this.getNow());
+    const cacheKey = rankingCacheKey(ranked);
+    const nowMs = Date.now();
+
+    if (
+      this.cacheTtlMs > 0 &&
+      this.cache &&
+      this.cache.key === cacheKey &&
+      this.cache.expiresAt > nowMs
+    ) {
+      return this.cache.result;
+    }
+
+    const result = await this.computeSummary(ranked, signal);
+
+    if (this.cacheTtlMs > 0) {
+      this.cache = {
+        key: cacheKey,
+        expiresAt: nowMs + this.cacheTtlMs,
+        result,
+      };
+    }
+
+    return result;
+  }
+
+  private async computeSummary(
+    ranked: readonly RankedApproval[],
+    signal?: AbortSignal,
+  ): Promise<SummaryResult> {
     const approvalIds = new Set(this.approvals.map((a) => a.id));
     const titlesById = new Map(this.approvals.map((a) => [a.id, a.title]));
     const approvalsById = new Map(

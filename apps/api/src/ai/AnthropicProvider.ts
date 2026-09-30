@@ -87,6 +87,10 @@ export class AnthropicProvider implements AIProvider {
   private readonly client: AnthropicClientPort;
   private readonly model: string;
   private readonly maxTokens: number;
+  private readonly schemaCache = new WeakMap<
+    ZodType<unknown>,
+    Anthropic.Tool.InputSchema
+  >();
 
   constructor(config: AnthropicProviderConfig = {}) {
     const apiKey = config.apiKey ?? process.env.ANTHROPIC_API_KEY;
@@ -110,6 +114,14 @@ export class AnthropicProvider implements AIProvider {
     this.client = new Anthropic({ apiKey });
   }
 
+  private inputSchemaFor(schema: ZodType<unknown>): Anthropic.Tool.InputSchema {
+    const cached = this.schemaCache.get(schema);
+    if (cached) return cached;
+    const built = toInputSchema(schema);
+    this.schemaCache.set(schema, built);
+    return built;
+  }
+
   async generateStructured<T>(
     params: GenerateStructuredParams<T>,
   ): Promise<T> {
@@ -117,7 +129,7 @@ export class AnthropicProvider implements AIProvider {
       throw abortFromSignal(params.signal);
     }
 
-    const inputSchema = toInputSchema(params.schema as ZodType<unknown>);
+    const inputSchema = this.inputSchemaFor(params.schema as ZodType<unknown>);
     const tools: Anthropic.Tool[] = [
       {
         name: STRUCTURED_TOOL_NAME,
