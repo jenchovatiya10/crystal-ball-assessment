@@ -4,7 +4,7 @@ import type { AddressInfo } from "node:net";
 import request from "supertest";
 import type { AIProvider } from "../ai/AIProvider.js";
 import { FakeAIProvider } from "../ai/FakeAIProvider.js";
-import { AIUnavailableError } from "../ai/resilience.js";
+import { createResilientAIProvider, AIUnavailableError } from "../ai/resilience.js";
 import type { GenerateStructuredParams, StreamParams } from "../ai/types.js";
 import { createApp } from "../app.js";
 import { APPROVALS } from "../fixtures/approvals.js";
@@ -152,7 +152,7 @@ describe("assistant SSE streaming", () => {
   });
 
   it("sends fallback token(s) and done when pre-first-token failures exhaust retries", async () => {
-    const provider = new ScriptedStreamProvider([
+    const inner = new ScriptedStreamProvider([
       {
         error: new AIUnavailableError("fail-1", { retryable: true, status: 503 }),
       },
@@ -160,6 +160,8 @@ describe("assistant SSE streaming", () => {
         error: new AIUnavailableError("fail-2", { retryable: true, status: 503 }),
       },
     ]);
+    // Production stacks ConversationService on ResilientAIProvider (one retry only).
+    const provider = createResilientAIProvider(inner, { timeoutMs: 8_000 });
     const store = new ConversationStore();
     const app = testApp(provider, store);
     const sessionId = randomUUID();
@@ -173,7 +175,7 @@ describe("assistant SSE streaming", () => {
 
     const frames = parseSse(String(response.body));
     expect(frames[0]?.event).toBe("meta");
-    expect(provider.streamCalls).toBe(2);
+    expect(inner.streamCalls).toBe(2);
     expect(frames.some((f) => f.event === "token")).toBe(true);
     expect(frames.at(-1)?.event).toBe("done");
     expect(frames.at(-1)?.data).toEqual({ fallback: true });

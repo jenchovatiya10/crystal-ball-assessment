@@ -237,4 +237,35 @@ describe("SummaryService", () => {
     expect(result.data.priorityItems).toHaveLength(2);
     expect(result.data.priorityItems[0]?.approvalId).toBe("apr_a");
   });
+
+  it("SHOULD reuse a short in-memory summary cache for identical rankings", async () => {
+    const payload = validAiSummary();
+    const ai = new ScriptedStructuredProvider([payload, payload]);
+    const service = new SummaryService(ai, {
+      now: NOW,
+      approvals: APPROVALS,
+      cacheTtlMs: 60_000,
+    });
+
+    const first = await service.presentSummary();
+    const second = await service.presentSummary();
+
+    expect(first).toEqual(second);
+    expect(ai.calls).toBe(1);
+  });
+
+  it("bypasses summary cache when TTL is disabled", async () => {
+    const payload = validAiSummary();
+    const ai = new ScriptedStructuredProvider([payload, payload]);
+    const service = new SummaryService(ai, {
+      now: NOW,
+      approvals: APPROVALS,
+      cacheTtlMs: 0,
+    });
+
+    await service.presentSummary();
+    await service.presentSummary();
+
+    expect(ai.calls).toBe(2);
+  });
 });
