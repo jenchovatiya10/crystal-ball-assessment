@@ -17,7 +17,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "tsx --test src/index.test.ts",
+    "test": "tsx --test src/index.test.ts src/schemas.test.ts",
     "lint": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

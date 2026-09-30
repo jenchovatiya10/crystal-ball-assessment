@@ -1,8 +1,35 @@
 import { z } from "zod";
 
+export {
+  ApprovalTypeSchema,
+  PrioritySchema,
+  ApprovalSchema,
+  PriorityItemSchema,
+  SummaryResponseSchema,
+  HelpResponseSchema,
+  SummaryRequestSchema,
+  ChatRequestSchema,
+  TeachRequestSchema,
+  HelpRequestSchema,
+  ErrorResponseSchema,
+} from "./schemas.js";
+
+export type {
+  ApprovalType,
+  Priority,
+  Approval,
+  PriorityItem,
+  SummaryResponse,
+  HelpResponse,
+  SummaryRequest,
+  ChatRequest,
+  TeachRequest,
+  HelpRequest,
+  ErrorResponse,
+} from "./schemas.js";
+
 /**
- * Minimal shared schemas for workspace wiring.
- * Feature schemas (modes, SSE events, etc.) will be added later.
+ * Foundation wiring schemas retained for workspace smoke checks.
  */
 
 export const HealthStatusSchema = z.object({
