@@ -14,6 +14,13 @@ type ModeTabsProps = {
 export function ModeTabs({ activeMode, onModeChange }: ModeTabsProps) {
   const modes = ASSISTANT_MODES;
 
+  function selectMode(mode: AssistantMode) {
+    onModeChange(mode);
+    queueMicrotask(() => {
+      document.getElementById(`tab-${mode}`)?.focus();
+    });
+  }
+
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     const currentIndex = modes.findIndex((mode) => mode.id === activeMode);
     if (currentIndex < 0) return;
@@ -36,7 +43,7 @@ export function ModeTabs({ activeMode, onModeChange }: ModeTabsProps) {
     }
 
     const next = modes[nextIndex];
-    if (next) onModeChange(next.id);
+    if (next) selectMode(next.id);
   }
 
   return (
@@ -58,7 +65,7 @@ export function ModeTabs({ activeMode, onModeChange }: ModeTabsProps) {
             aria-controls={`panel-${mode.id}`}
             tabIndex={selected ? 0 : -1}
             className={selected ? "mode-tab mode-tab-active" : "mode-tab"}
-            onClick={() => onModeChange(mode.id)}
+            onClick={() => selectMode(mode.id)}
           >
             <span className="mode-tab-label">{mode.label}</span>
             <span className="mode-tab-desc">{mode.description}</span>

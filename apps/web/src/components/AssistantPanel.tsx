@@ -7,7 +7,7 @@ import { GreetingBar } from "@/components/GreetingBar";
 import { HelpView } from "@/components/HelpView";
 import { ModeTabs } from "@/components/ModeTabs";
 import { SummaryView } from "@/components/SummaryView";
-import { ASSISTANT_MODES, type AssistantMode } from "@/lib/assistant-modes";
+import type { AssistantMode } from "@/lib/assistant-modes";
 import {
   selectSessionId,
   useConversationStore,
@@ -25,35 +25,24 @@ type AssistantPanelProps = {
 };
 
 function ModeStage({ mode }: { mode: AssistantMode }) {
-  if (mode === "greeting") {
-    return <GreetingBar />;
+  switch (mode) {
+    case "summary":
+      return <SummaryView />;
+    case "talk":
+      return <ChatView mode="talk" />;
+    case "help":
+      return <HelpView />;
+    case "teach":
+      return <ChatView mode="teach" />;
+    case "greeting":
+      return <GreetingBar />;
   }
-
-  if (mode === "summary") {
-    return <SummaryView />;
-  }
-
-  if (mode === "help") {
-    return <HelpView />;
-  }
-
-  if (mode === "talk" || mode === "teach") {
-    return <ChatView mode={mode} />;
-  }
-
-  const meta = ASSISTANT_MODES.find((item) => item.id === mode);
-
-  return (
-    <div className="mode-placeholder">
-      <h2>{meta?.label ?? mode}</h2>
-      <p>{meta?.description}</p>
-    </div>
-  );
 }
 
 /**
- * Client shell for mode switching. Uses narrow Zustand selectors only.
- * Composer draft text remains local (not in the store).
+ * Client shell for all five assistant modes.
+ * Mode + panel chrome live in Zustand — no prop drilling of session/stream state.
+ * Talk/Teach share ChatView; stream abort on mode switch/unmount is owned by useConversation.
  */
 export function AssistantPanel({ approvals }: AssistantPanelProps) {
   const activeMode = useUiStore(selectActiveMode);
