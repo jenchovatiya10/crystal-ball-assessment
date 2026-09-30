@@ -239,7 +239,7 @@ describe("ConversationService", () => {
           seen.push(chunk);
         }
       })(),
-    ).rejects.toThrow("boom");
+    ).rejects.toThrow("Stream interrupted");
 
     expect(seen).toEqual(["partial"]);
     expect(store.getHistory("s1", "talk_to_me")).toEqual([]);

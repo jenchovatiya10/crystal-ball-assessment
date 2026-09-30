@@ -207,11 +207,12 @@ describe("assistant SSE streaming", () => {
     expect(frames[1]?.data).toEqual({ t: "partial" });
     expect(frames[2]?.data).toEqual(
       expect.objectContaining({
-        code: expect.any(String),
-        message: expect.any(String),
+        code: "AI_UNAVAILABLE",
+        message: "The AI service is temporarily unavailable. Please try again.",
         fallback: true,
       }),
     );
+    expect(JSON.stringify(frames[2]?.data)).not.toMatch(/mid|anthropic|stack/i);
     expect(store.getHistory(sessionId, "talk_to_me")).toEqual([]);
   });
 
