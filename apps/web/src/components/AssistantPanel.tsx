@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import type { Approval } from "@crystal-ball/shared";
+import { ChatView } from "@/components/ChatView";
 import { GreetingBar } from "@/components/GreetingBar";
 import { ModeTabs } from "@/components/ModeTabs";
 import { ASSISTANT_MODES, type AssistantMode } from "@/lib/assistant-modes";
@@ -21,20 +22,24 @@ type AssistantPanelProps = {
   approvals: Approval[];
 };
 
-function ModePlaceholder({ mode }: { mode: AssistantMode }) {
-  const meta = ASSISTANT_MODES.find((item) => item.id === mode);
-
+function ModeStage({ mode }: { mode: AssistantMode }) {
   if (mode === "greeting") {
     return <GreetingBar />;
   }
+
+  if (mode === "talk" || mode === "teach") {
+    return <ChatView mode={mode} />;
+  }
+
+  const meta = ASSISTANT_MODES.find((item) => item.id === mode);
 
   return (
     <div className="mode-placeholder">
       <h2>{meta?.label ?? mode}</h2>
       <p>{meta?.description}</p>
       <p className="mode-placeholder-note">
-        Composer text, help questions, and transient summary results stay in
-        local component state. Streaming will be wired later.
+        Help and Summary stay in local component state until those views are
+        wired.
       </p>
     </div>
   );
@@ -94,7 +99,7 @@ export function AssistantPanel({ approvals }: AssistantPanelProps) {
             aria-labelledby={`tab-${activeMode}`}
             className="assistant-stage"
           >
-            <ModePlaceholder mode={activeMode} />
+            <ModeStage mode={activeMode} />
 
             <aside className="approval-rail" aria-label="Seeded approvals">
               <h3>Queue snapshot</h3>
