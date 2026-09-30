@@ -360,6 +360,25 @@ describe("ChatView", () => {
     );
   });
 
+  it("shows a fallback status when done includes fallback", async () => {
+    streamChatMock.mockImplementation(async function* () {
+      yield sse("meta", { sessionId: "test-session", requestId: "r1" });
+      yield sse("token", { t: "Limited answer." });
+      yield sse("done", { fallback: true });
+    });
+    const user = userEvent.setup();
+
+    render(<ChatView mode="talk" />);
+
+    await user.type(screen.getByLabelText(/^message$/i), "Hello");
+    await user.click(screen.getByRole("button", { name: /send message/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/showing a fallback response/i)).toBeInTheDocument();
+    });
+    expect(screen.getByText("Limited answer.")).toBeInTheDocument();
+  });
+
   it("keeps Talk and Teach histories isolated when switching modes", async () => {
     streamChatMock.mockImplementation(async function* () {
       yield sse("token", { t: "Talk answer" });
