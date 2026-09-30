@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { initAssistantSse, writeSseEvent } from "../http/sse.js";
+import { HttpError } from "../middleware/sessionId.js";
 import type { ConversationService } from "../services/conversation.service.js";
 import type { ConversationMode } from "../services/conversationStore.js";
 import { asyncHandler } from "./asyncHandler.js";
@@ -9,7 +10,17 @@ export function createAssistantStreamController(
   mode: ConversationMode,
 ) {
   return asyncHandler(async (req: Request, res: Response) => {
-    const sessionId = String(req.body.sessionId);
+    const headerSessionId = req.sessionId;
+    const bodySessionId = String(req.body.sessionId ?? "");
+    if (!headerSessionId || bodySessionId !== headerSessionId) {
+      throw new HttpError(
+        400,
+        "SESSION_MISMATCH",
+        "sessionId must match X-Session-Id",
+      );
+    }
+
+    const sessionId = headerSessionId;
     const message = String(req.body.message);
     const requestId = req.requestId;
     const controller = new AbortController();

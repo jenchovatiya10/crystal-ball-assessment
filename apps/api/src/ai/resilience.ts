@@ -106,8 +106,6 @@ function mapProviderError(
     return error as Error;
   }
 
-  const message =
-    error instanceof Error ? error.message : "AI provider unavailable";
   const status =
     typeof error === "object" &&
     error !== null &&
@@ -116,7 +114,7 @@ function mapProviderError(
       ? (error as { status: number }).status
       : undefined;
 
-  return new AIUnavailableError(message, {
+  return new AIUnavailableError("AI provider unavailable", {
     retryable: isTransient(error) || (status !== undefined && status >= 500),
     status,
     cause: error,

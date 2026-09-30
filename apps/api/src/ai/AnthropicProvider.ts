@@ -243,7 +243,7 @@ function mapAnthropicError(error: unknown): Error {
 
   if (error instanceof Anthropic.APIError) {
     const status = error.status;
-    return new AIUnavailableError(error.message, {
+    return new AIUnavailableError("Anthropic provider request failed", {
       retryable: status == null || status >= 500,
       status: status ?? undefined,
       cause: error,
@@ -251,7 +251,7 @@ function mapAnthropicError(error: unknown): Error {
   }
 
   if (error instanceof Error) {
-    return new AIUnavailableError(error.message, {
+    return new AIUnavailableError("Anthropic provider request failed", {
       retryable: true,
       cause: error,
     });

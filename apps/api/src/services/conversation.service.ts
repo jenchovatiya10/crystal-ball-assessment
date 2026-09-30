@@ -79,16 +79,23 @@ function toErrorPayload(error: unknown): {
   code: string;
   message: string;
 } {
+  // Client-facing only — never forward raw provider / SDK messages.
   if (error instanceof AITimeoutError) {
-    return { code: error.code, message: error.message };
+    return {
+      code: error.code,
+      message: "The AI request timed out. Please try again.",
+    };
   }
   if (error instanceof AIUnavailableError) {
-    return { code: error.code, message: error.message };
+    return {
+      code: error.code,
+      message: "The AI service is temporarily unavailable. Please try again.",
+    };
   }
-  if (error instanceof Error) {
-    return { code: "STREAM_ERROR", message: error.message || "Stream interrupted" };
-  }
-  return { code: "STREAM_ERROR", message: "Stream interrupted" };
+  return {
+    code: "STREAM_ERROR",
+    message: "Stream interrupted",
+  };
 }
 
 /**
