@@ -1,0 +1,24 @@
+{
+  "name": "crystal-ball-assessment",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run build -w @crystal-ball/shared && concurrently -n api,web -c blue,green \"npm run dev -w @crystal-ball/api\" \"npm run dev -w @crystal-ball/web\"",
+    "build": "npm run build -w @crystal-ball/shared && npm run build -w @crystal-ball/api && npm run build -w @crystal-ball/web",
+    "test": "npm run build -w @crystal-ball/shared && npm run test -w @crystal-ball/shared && npm run test -w @crystal-ball/api && npm run test -w @crystal-ball/web",
+    "test:api": "npm run build -w @crystal-ball/shared && npm run test -w @crystal-ball/api",
+    "test:web": "npm run build -w @crystal-ball/shared && npm run test -w @crystal-ball/web",
+    "lint": "npm run build -w @crystal-ball/shared && npm run lint -w @crystal-ball/shared && npm run lint -w @crystal-ball/api && npm run lint -w @crystal-ball/web",
+    "typecheck": "npm run build -w @crystal-ball/shared && npm run typecheck -w @crystal-ball/shared && npm run typecheck -w @crystal-ball/api && npm run typecheck -w @crystal-ball/web"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
