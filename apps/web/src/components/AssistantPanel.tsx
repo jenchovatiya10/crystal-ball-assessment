@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import type { Approval } from "@crystal-ball/shared";
 import { ChatView } from "@/components/ChatView";
 import { GreetingBar } from "@/components/GreetingBar";
+import { HelpView } from "@/components/HelpView";
 import { ModeTabs } from "@/components/ModeTabs";
 import { SummaryView } from "@/components/SummaryView";
 import { ASSISTANT_MODES, type AssistantMode } from "@/lib/assistant-modes";
@@ -32,6 +33,10 @@ function ModeStage({ mode }: { mode: AssistantMode }) {
     return <SummaryView />;
   }
 
+  if (mode === "help") {
+    return <HelpView />;
+  }
+
   if (mode === "talk" || mode === "teach") {
     return <ChatView mode={mode} />;
   }
@@ -42,16 +47,13 @@ function ModeStage({ mode }: { mode: AssistantMode }) {
     <div className="mode-placeholder">
       <h2>{meta?.label ?? mode}</h2>
       <p>{meta?.description}</p>
-      <p className="mode-placeholder-note">
-        Help stays in local component state until that view is wired.
-      </p>
     </div>
   );
 }
 
 /**
  * Client shell for mode switching. Uses narrow Zustand selectors only.
- * Composer / help / summary draft text remain local (not in the store).
+ * Composer draft text remains local (not in the store).
  */
 export function AssistantPanel({ approvals }: AssistantPanelProps) {
   const activeMode = useUiStore(selectActiveMode);
