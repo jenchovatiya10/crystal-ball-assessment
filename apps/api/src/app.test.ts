@@ -193,13 +193,24 @@ describe("loadEnv", () => {
     });
   });
 
-  it("fails when secrets are missing", () => {
+  it("allows omitting Anthropic key for local fallback mode", () => {
+    const env = loadEnv({
+      ANTHROPIC_API_KEY: "",
+      WEB_ORIGIN: "http://localhost:3000",
+    });
+
+    expect(env.ANTHROPIC_API_KEY).toBeUndefined();
+    expect(env.ANTHROPIC_MODEL).toBe("claude-sonnet-4-20250514");
+    expect(env.WEB_ORIGIN).toBe("http://localhost:3000");
+  });
+
+  it("fails when WEB_ORIGIN is missing", () => {
     expect(() =>
       loadEnv({
+        ANTHROPIC_API_KEY: "sk-test",
         ANTHROPIC_MODEL: "claude-test",
-        WEB_ORIGIN: "http://localhost:3000",
       }),
-    ).toThrow(/ANTHROPIC_API_KEY/);
+    ).toThrow(/WEB_ORIGIN/);
   });
 
   it("keeps secrets server-side only (no NEXT_PUBLIC in EnvSchema)", () => {
