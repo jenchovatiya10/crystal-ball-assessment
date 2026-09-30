@@ -250,6 +250,59 @@ body {
   margin-top: 0.5rem;
 }
 
+.greeting-bar-loading,
+.greeting-bar-message,
+.greeting-bar-meta {
+  margin: 0.65rem 0 0;
+  line-height: 1.55;
+}
+
+.greeting-bar-loading,
+.greeting-bar-meta {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.greeting-bar-message {
+  white-space: pre-wrap;
+}
+
+.greeting-bar-error {
+  margin: 0.65rem 0 0;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid rgba(240, 100, 100, 0.45);
+  border-radius: 0.65rem;
+  background: rgba(240, 100, 100, 0.1);
+  color: #ffb4b4;
+  font-size: 0.88rem;
+}
+
+.greeting-bar-actions {
+  margin-top: 1rem;
+}
+
+.greeting-replay {
+  padding: 0.55rem 0.95rem;
+  border: 1px solid rgba(61, 156, 240, 0.55);
+  border-radius: 0.65rem;
+  background: var(--accent-soft);
+  color: var(--foreground);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.greeting-replay:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.greeting-replay:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .approval-rail h3 {
   margin-bottom: 0.85rem;
   font-size: 0.95rem;
