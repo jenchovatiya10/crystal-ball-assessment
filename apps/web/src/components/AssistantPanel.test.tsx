@@ -1,8 +1,24 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Approval } from "@crystal-ball/shared";
 import { AssistantPanel } from "@/components/AssistantPanel";
+import { useUiStore } from "@/store/uiStore";
+
+vi.mock("@/lib/apiClient", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/apiClient")>();
+  return {
+    ...actual,
+    getSummary: vi.fn().mockResolvedValue({
+      data: {
+        overview: "Queue looks manageable.",
+        priorityItems: [],
+        recommendedNextAction: "Start with the oldest due item.",
+      },
+      meta: { source: "ai", promptVersion: "summary.v1" },
+    }),
+  };
+});
 
 const approvals: Approval[] = [
   {
@@ -16,7 +32,11 @@ const approvals: Approval[] = [
 ];
 
 describe("AssistantPanel", () => {
-  it("renders approvals passed from the server", () => {
+  beforeEach(() => {
+    useUiStore.setState({ panelOpen: true, activeMode: "summary" });
+  });
+
+  it("renders approvals passed from the server", async () => {
     render(<AssistantPanel approvals={approvals} />);
 
     expect(
@@ -26,6 +46,9 @@ describe("AssistantPanel", () => {
     expect(screen.getByText("1")).toBeInTheDocument();
     expect(
       screen.getByText(/Site Patrol Onboarding & Checklists Folder/),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole("region", { name: /present me summary/i }),
     ).toBeInTheDocument();
   });
 
